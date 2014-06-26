@@ -1,0 +1,323 @@
+<html>
+  <head>
+    <title>Lossy Compressed Image Formats Study (July 2014)</title>
+    <style>
+      body {font-family: Helvetica, Arial, sans-serif;}
+      table {border: 1px solid gray; border-collapse: collapse; min-width: 50%;}
+      td {padding: 6px; border: 1px solid gray;}
+      tr.thead {background-color: #CC4040;}
+      tr.dark {background-color: #DEDEDE;}
+      #toc {display: inline-block; padding: 8px;}
+      h3 {background-color: #DEDEDE; padding: 5;}
+      code {color: #196C35;}
+    </style>
+  </head>
+  <body>
+    <h1>Lossy Compressed Image Formats Study</h1>
+    <h2>Mozilla Corporation, July 2014</h2>
+    <h3 id="introduction">Introduction</h3>
+    <p>This study compares the compression performance of four different image formats: JPEG, WebP,
+       JPEG XR, and HEVC-MSP. The latter two formats were chosen because they are frequently
+       discussed as possible JPEG successors. Two different JPEG encoders are tested, libjpeg-turbo
+       and mozjpeg.</p>
+    <p>It is our intent to only address compression performance in this study. Other technical,
+       legal, and market factors that might be considered when evaluating codecs are outside the
+       scope of this study.</p>
+    <h3 id="quality_comparison">Quality Comparison Algorithms</h3>
+    <p>We chose to test with four algorithms:</p>
+    <ul>
+      <li>PSNR-HVS-M
+        <ul>
+          <li>Peak Signal to Noise Ratio taking into account Contrast Sensitivity Function (CSF) and
+              between-coefficient contrast masking of DCT basis functions [5].</li>
+        </ul>
+      </li>
+      <li>Y-SSIM
+        <ul>
+          <li>Structural Similarity algorithm [3] applied to luma channel only.</li>
+        </ul>
+      </li>
+      <li>MS-SSIM
+        <ul>
+          <li>Multi-scale Structural Similarity [4] applied to luma channel only.</li>
+        </ul>
+      </li>
+      <li>RGB-SSIM
+        <ul>
+          <li>Average of Structural Similarity algorithm [3] applied to R, G, and B channels.</li>
+        </ul>
+      </li>
+    </ul>
+    <p>All of these algorithms compare two images and return a number indicating the degree to which
+       the second image is similar to the first. In all cases, no matter what the scale, higher
+       numbers indicate a higher degree of similarity.</p>
+    <p>It's unclear which algorithm is best in terms of human visual perception, so we tested with
+       four of the most respected algorithms.</p>
+    <h3 id="image_sets">Image Sets</h3>
+    <ol>
+      <li><strong>Wikipedia:</strong> 49 images at varying sizes downsampled from high resolution photos on Wikipedia, <a href="http://people.mozilla.org/~josh/Wikipedia-medium.zip">download here</a>.</li>
+      <li><strong>Kodak:</strong> 24 PNG images from the
+          <a href="http://r0k.us/graphics/kodak/">Kodak Lossless True Color Image Suite</a>.</li>
+      <li><strong>Tecnick:</strong> 100 PNG images from
+          <a href="http://www.tecnick.com/public/code/cp_dpage.php?aiocp_dp=testimages">Tecnick's
+          public test images</a>. Images used are the original size RGB color images.</li>
+    </ol>
+    <h3 id="methodology">Methodology</h3>
+    <p>All results should be easily reproducible using publicly available tools. The following
+       software is used to generate results for this study:</p>
+    <ul>
+      <li>Test Automation
+        <ul>
+          <li>Scripts can be found in our
+              <a href="https://github.com/bdaehlie/web_image_formats">test suite github
+              repository</a>.</li>
+        </ul>
+      </li>
+      <li>Encoders and Decoders
+        <ul>
+          <li>Encoding and decoding for JPEG, WebP and JPEG XR is done via custom encoder and
+              decoder wrappers, largely in order to input and output CCIR 601 full-range Y'CbCr
+              4:2:0 consistently. C source code for these wrappers is available in our
+              <a href="https://github.com/bdaehlie/web_image_formats">test suite github
+              repository</a>.
+            <ul>
+              <li>We wrap
+                  <code><a href="http://libjpeg-turbo.virtualgl.org/">libjpeg-turbo</a></code> to
+                  encode and decode JPEG images. This study uses version 1.3.1.</li>
+              <li>We wrap <code><a href="https://github.com/mozilla/mozjpeg">mozjpeg</a></code> to
+                  encode JPEG images for mozjpeg results. This study uses version 2.0.</li>
+              <li>We wrap <code><a href="https://code.google.com/p/webp/">libwebp</a></code> to
+                  encode and decode WebP images. This study uses version 0.4.0.</li>
+              <li>We wrap <code><a href="https://jxrlib.codeplex.com/">jxrlib</a></code> to
+                  encode and decode JPEG XR images. This study uses git revision ccf11047dbec.</li>
+            </ul>
+          </li>
+          <li>Encoding and decoding for HEVC-MSP is done via the <code>TAppEncoderStatic</code>
+              and <code>TAppDecoderStatic</code> programs. Both programs are part of the
+              <a href="https://hevc.hhi.fraunhofer.de/svn/svn_HEVCSoftware/"><code>jctvc-hm</code></a>
+              software package. No wrapper is needed as these programs accept and output CCIR 601
+              full-range Y'CbCr 4:2:0. This study uses r3928 of the SVN-based source code.</li>
+        </ul>
+      </li>
+      <li>Metrics
+        <ul>
+          <li>Quality metrics are produced by programs which are available in our
+              <a href="https://github.com/bdaehlie/web_image_formats">test suite github
+              repository</a>. These programs are based on the metrics programs in
+              <a href="https://xiph.org/daala/">daala</a>'s tools.</li>
+          <li>We wrap the <a href="http://tdistler.com/iqa/">IQA library</a> to calculate MS-SSIM
+              scores.</li>
+        </ul>
+      </li>
+      <li>Other
+        <ul>
+          <li><code>identify</code> is used to extract width and height information from images, and
+              <code>convert</code> is used to convert between PNG and PPM formats. Both tools are
+              part of the <a href="http://www.imagemagick.org/"><code>ImageMagick</code></a> tools.
+              This study uses version 6.8.6-3.</li>
+          <li>We don't show data for the bottom ~25% of quality level because these are rarely used.
+              We also clip some data from the top of the quality spectrum for HEVC and JPEG XR
+              because other encoders don't create images at equivalent levels, thus we can't show
+              comparable data.</li>
+        </ul>
+      </li>
+    </ul>
+    <p>PNG test images are converted to CCIR 601 full-range Y'CbCr 4:2:0, which is then fed directly
+       into the encoders. The encoders produce an image in their respective formats. We record the
+       size of the resulting encoded image file. HEVC-MSP files are penalized 80 bytes per image
+       file because HEVC-MSP is just a bitstream with no container. This penalty approximates the
+       size of container data. This encoded image is then decoded back to CCIR 601 full-range Y'CbCr
+       4:2:0, the same format the encoder was given to encode. Quality scores are calculated on the
+       basis of the Y'CbCr image that was fed to the encoder and the decoded Y'CbCr image.<p>
+    <p>This is done for each possible quality level (encoders typically have about 100 possible
+       quality levels). See the <code>rd_collect.py</code> script for more information.</p>
+    <p>After collecting encoded image size and quality metrics for each image at each quality
+       level, we average the file sizes and quality scores across all images. Quality scores are
+       weighted by pixel count. See the <code>rd_average.py</code> script for more information.
+    <p>Note: Three of the metrics we use operate only on the luma plane, disregarding chroma
+       (Y-SSIM, MS-SSIM, and PSNR-HVS-M). One metric combines the results for the luma and chroma
+       planes after color conversion (RGB-SSIM). An issue with luma-only metrics is that they
+       disregard chroma while encoded file size is inclusive of bits encoding chroma. Metrics that
+       take chroma into account do so by averaging the results for each plan, which is problematic
+       because we are not aware of any evidence that this is an accurate method. It's clear that
+       luma is significantly more important to human visual perception than chroma, and it isn't
+       clear how or to what extent chroma should be taken into account. Averaging is something of a
+       haphazard guess, one which could well be exaggerating the impact of chroma. This is an area
+       in which we'd like to see more research done. Historically, luma-only metrics have been found
+       to be reasonably accurate, even for color images, as there is typically a strong correllation
+       between luma and chroma planes in color image formats.</p>
+    <h3 id="raw_data">Results (Raw Data)</h3>
+    <p>The following zip archive contains textual data (.out) files with the full results for this
+       study. These can be opened with any text editor or imported into most spreadsheet
+       programs.</p>
+    <ul>
+      <li><a href="July-2014-Data.zip">Data Archive</a></li>
+    </ul>
+    <h3 id="the_data_1">Bits per Pixel at Equivalent Quality According to PSNR-HVS-M</h3>
+    <p>The goal for this section is to visualize bits per pixel over the full range of quality
+       options. In each graph, the Y axis represents quality and the X axis represents bits per
+       pixel. There is one graph for each image set.</p>
+    <p>
+      <table>
+        <caption>Graph 1: Wikipedia image set, PSNR-HVS-M quality metric, left is better</caption>
+        <tr>
+          <td><img src="Wikipedia-psnrhvsm.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 2: Average for Kodak image set, PSNR-HVS-M quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Kodak-psnrhvsm.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 3: Average for Tecnick image set, PSNR-HVS-M quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Tecnick-psnrhvsm.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <h3 id="the_data_2">Bits per Pixel at Equivalent Quality According to Y-SSIM</h3>
+    <p>The goal for this section is to visualize bits per pixel over the full range of quality
+       options. In each graph, the Y axis represents quality and the X axis represents bits per
+       pixel. There is one graph for each image set.</p>
+    <p>
+      <table>
+        <caption>Graph 1: Wikipedia image set, Y-SSIM quality metric, left is better</caption>
+        <tr>
+          <td><img src="Wikipedia-yssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 2: Average for Kodak image set, Y-SSIM quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Kodak-yssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 3: Average for Tecnick image set, Y-SSIM quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Tecnick-yssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <h3 id="the_data_3">Bits per Pixel at Equivalent Quality According to MS-SSIM</h3>
+    <p>The goal for this section is to visualize bits per pixel over the full range of quality
+       options. In each graph, the Y axis represents quality and the X axis represents bits per
+       pixel. There is one graph for each image set.</p>
+    <p>
+      <table>
+        <caption>Graph 1: Wikipedia image set, MS-SSIM quality metric, left is better</caption>
+        <tr>
+          <td><img src="Wikipedia-msssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 2: Average for Kodak image set, MS-SSIM quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Kodak-msssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 3: Average for Tecnick image set, MS-SSIM quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Tecnick-msssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <h3 id="the_data_4">Bits per Pixel at Equivalent Quality According to RGB-SSIM</h3>
+    <p>The goal for this section is to visualize bits per pixel over the full range of quality
+       options. In each graph, the Y axis represents quality and the X axis represents bits per
+       pixel. There is one graph for each image set.</p>
+    <p>
+      <table>
+        <caption>Graph 1: Wikipedia image set, RGB-SSIM quality metric, left is better</caption>
+        <tr>
+          <td><img src="Wikipedia-rgbssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 2: Average for Kodak image set, RGB-SSIM quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Kodak-rgbssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 3: Average for Tecnick image set, RGB-SSIM quality metric, left is
+                 better</caption>
+        <tr>
+          <td><img src="Tecnick-rgbssim.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <h3 id="bibliography">Bibliography and Relevant Reading</h3>
+    <ol>
+      <li><a href="https://developers.google.com/speed/webp/docs/webp_study">WebP Compression
+          Study</a>. Google.</li>
+      <li><a href="http://en.wikipedia.org/wiki/Structural_similarity">Structural similarity</a>.
+          Wikipedia.</li>
+      <li><a href="https://ece.uwaterloo.ca/~z70wang/research/ssim/">The SSIM Index for Image
+          Quality Assessment</a>.
+        <ul>
+          <li>Z. Wang, A. C. Bovik, H. R. Sheikh and E. P. Simoncelli, "Image quality assessment:
+              From error visibility to structural similarity," IEEE Transactions on Image
+              Processing, vol. 13, no. 4, pp. 600-612, Apr. 2004.</li>
+        </ul>
+      </li>
+      <li><a href="https://ece.uwaterloo.ca/~z70wang/publications/msssim.html">Multi-scale
+          Structural Similarity for Image Quality Assessment</a>.
+        <ul>
+          <li>Zhou Wang, Eero P. Simoncelli, and Alan C. Bovik, Multi-scale Structural Similarity
+              for Image Quality Assessment, 37th IEEE Asilomar Conference on Signals, Systems and
+              Computers, Nov. 2003.</li>
+        </ul>
+      </li>
+      <li><a href="http://www.ponomarenko.info/psnrhvsm.htm">Nikolay Ponomarenko homepage -
+          PSNR-HVS-M download page</a>.
+        <ul>
+          <li>Nikolay Ponomarenko, Flavia Silvestri, Karen Egiazarian, Marco Carli, Jaakko Astola,
+              Vladimir Lukin, On between-coefficient contrast masking of DCT basis functions, CD-ROM
+              Proceedings of the Third International Workshop on Video Processing and Quality
+              Metrics for Consumer Electronics VPQM-07, Scottsdale, Arizona, USA, 25-26 January,
+              2007, 4 p.</li>
+        </ul>
+      </li>
+      <li><a href="http://hdview.wordpress.com/2013/05/30/jpegxr-updates/">JPEGXR updates</a>.
+        Matt Uyttendaele (Microsoft).
+      </li>
+    </ol>
+    <h3 id="contributors">Contributors</h3>
+    <ul>
+      <li>Mozilla Corporation
+        <ul>
+          <li>Josh Aas (Primary)</li>
+          <li>Nathan Egge</li>
+          <li>Frank Bossen</li>
+        </ul>
+      </li>
+    </ul>
+  </body>
+</html>
