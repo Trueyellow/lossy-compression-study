@@ -7,6 +7,7 @@
       td {padding: 6px; border: 1px solid gray;}
       tr.thead {background-color: #CC4040;}
       tr.dark {background-color: #DEDEDE;}
+      .notes {font-size:70%;}
       #toc {display: inline-block; padding: 8px;}
       h3 {background-color: #DEDEDE; padding: 5;}
       code {color: #196C35;}
@@ -134,18 +135,38 @@
     <p>After collecting encoded image size and quality metrics for each image at each quality
        level, we average the file sizes and quality scores across all images. Quality scores are
        weighted by pixel count. See the <code>rd_average.py</code> script for more information.
-    <p>Note: Three of the metrics we use operate only on the luma plane, disregarding chroma
-       (Y-SSIM, MS-SSIM, and PSNR-HVS-M). One metric combines the results for the luma and chroma
-       planes after color conversion (RGB-SSIM). An issue with luma-only metrics is that they
-       disregard chroma while encoded file size is inclusive of bits encoding chroma. Metrics that
-       take chroma into account do so by averaging the results for each plan, which is problematic
-       because we are not aware of any evidence that this is an accurate method. It's clear that
-       luma is significantly more important to human visual perception than chroma, and it isn't
-       clear how or to what extent chroma should be taken into account. Averaging is something of a
-       haphazard guess, one which could well be exaggerating the impact of chroma. This is an area
-       in which we'd like to see more research done. Historically, luma-only metrics have been found
-       to be reasonably accurate, even for color images, as there is typically a strong correllation
-       between luma and chroma planes in color image formats.</p>
+    <div class="notes">
+    <p>Note on Luma-only Metrics</p>
+    <p>Three of the metrics we use (Y-SSIM, MS-SSIM, and PSNR-HVS-M) measure image quality by
+       considering only a single channel, e.g., luma, chroma-blue or chroma-red, disregarding the
+       others.  Another metric we use (RGB-SSIM) combines the results for both the luma and chroma
+       planes, but only after color conversion.  An issue with codec tuning based on rate-distortion
+       curves for a single-plane metric is that they can produce sub-optimal results.  A
+       hypothetical codec that spends bits to improve luma quality and codes no chroma scores well
+       here!  This is because rate is typically computed based on the entire coded image size (luma
+       and chroma).  Metrics that take both luma and chroma into account do so averaging the results
+       for each, which is problematic because we are not aware of any evidence that this corresponds
+       well with human perception.  How to weight the different channels when averaging is something
+       of a guess, one which could well exaggerate the overall impact of chroma.  This is an area we
+       would like to see researched further.</p>
+    <p>Despite the above, there are several reasons to continue using luma-only metrics to measure
+       codec performance.  First, the human visual system is more sensitive to variations in
+       brightness than color.  This is the motivation behind chroma sub-sampling.  Second, in a
+       4:2:0 image the luma plane accounts for 2/3 of all pixel data, but due to coding techniques
+       often accounts for more than 2/3 of all bits per image.  A luma plane approach can only be so
+       wrong.  Third, despite being globally decorrelated in an image, the chroma channels often
+       correlate well with luma *locally*.  This fact is typically exploited by codecs and a side
+       effect is that improvements in luma coding alone can translate to improvements in chroma
+       quality.  Finally, it may be tempting to try and partition an image size into bits that code
+       luma and bits that code chroma.  However, modern video codecs use multi-symbol probability
+       models and adapt the context everywhere.  It is impossible to causally separate a bit that is
+       used just code a luma value, because its value influences the cost to code a chroma value and
+       vice versa.  So we are stuck with total bits / pixel as the most accurate measure of overall
+       rate.</p>
+    <p>Until research shows how to combine quality scores from the three (or more if you include
+       alpha) image channels into a single useful value, we will continue to use luma-only metrics
+       for any non-subjective testing we do.</p>
+    </div>
     <h3 id="raw_data">Results (Raw Data)</h3>
     <p>The following zip archive contains textual data (.out) files with the full results for this
        study. These can be opened with any text editor or imported into most spreadsheet
