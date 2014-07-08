@@ -144,8 +144,15 @@
        size of container data. This encoded image is then decoded back to CCIR 601 full-range Y'CbCr
        4:2:0, the same format the encoder was given to encode. Quality scores are calculated on the
        basis of the Y'CbCr image that was fed to the encoder and the decoded Y'CbCr image.<p>
-    <p>This is done for each possible quality level (encoders typically have about 100 possible
-       quality levels). See the <code>rd_collect.py</code> script for more information.</p>
+    <p>This is done for the top 75% of quality levels available (encoders typically have about 100
+       possible quality levels). We clip the bottom 25% of quality levels because these are rarely
+       used and results can be erratic due to heavily distorted images. We also clip a few quality
+       levels from the top of the HEVC and JPEG XR quality spectrum because they exceed the highest
+       quality levels that the other encoders are capable of achieving, thus making comparison
+       impossible. People are not likely to use these quality setting clipped from the upper end of
+       the quality spectrum either, since selecting a lower setting will result in a visually
+       indistinguishable image with a much smaller file size. See the <code>rd_collect.py</code>
+       script for more information on exactly what is clipped.</p>
     <p>After collecting encoded image size and quality metrics for each image at each quality
        level, we average the file sizes and quality scores across all images. Quality scores are
        weighted by pixel count. See the <code>rd_average.py</code> script for more information.
