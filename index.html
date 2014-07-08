@@ -285,11 +285,12 @@
        developers. Theoretically, most encoders could be tuned to perform better on any particular
        metric while producing valid (compatible) image files. The mozjpeg encoder actually includes
        the option to target different metrics, so we can use it to illustrate this.</p>
-    <p>Here are graphs for each metric using the Kodak image set. The difference between these
-       graphs and the above Kodak graphs is that mozjpeg has been configured to tune for the SSIM
-       metric instead of the default PSNR-HVS-M tuning. Notice how mozjpeg performs much better
-       in these graphs according to Y-SSIM and RGB-SSIM, though at the expense of PSNR-HVS-M and
-       MS-SSIM.</p>
+    <p>The default tuning configuration for mozjpeg targets PSNR-HVS-M. It tunes for PSNR-HVS-M by
+       default because it does pretty well on most metrics with this setting. This setting is used
+       in all of the graphs shown earlier in this study.
+    <p>In the following four graphs, mozjpeg is configured to tune for SSIM instead of PSNR-HVS-M.
+       Notice how mozjpeg performs much better in the following graphs according to Y-SSIM and
+       RGB-SSIM, though at the expense of PSNR-HVS-M and MS-SSIM.</p>
     <p>
       <table>
         <caption>Graph 1: Average for Kodak image set, PSNR-HVS-M quality metric, mozjpeg tuned for
