@@ -15,6 +15,21 @@
   <body>
     <h1>Lossy Compressed Image Formats Study</h1>
     <h2>Mozilla Corporation, July 2014</h2>
+    <ul>
+      <li><a href="#introduction">Introduction</a></li>
+      <li><a href="#quality_metrics">Quality Metrics</a></li>
+      <li><a href="#image_sets">Image Sets</a></li>
+      <li><a href="#methodology">Methodology</a></li>
+      <li><a href="#raw_data">Results (Raw Data)</a></li>
+      <li><a href="#psnr-hvs-m-data">Bits per Pixel at Equivalent Quality According to PSNR-HVS-M</a></li>
+      <li><a href="#y-ssim-data">Bits per Pixel at Equivalent Quality According to Y-SSIM</a></li>
+      <li><a href="#ms-ssim-data">Bits per Pixel at Equivalent Quality According to MS-SSIM</a></li>
+      <li><a href="#rgb-ssim-data">Bits per Pixel at Equivalent Quality According to RGB-SSIM</a></li>
+      <li><a href="#tuning-for-metrics">Note on Tuning for Metrics</a></li>
+      <li><a href="#luma-only-metrics">Note on Luma-only Metrics</a></li>
+      <li><a href="#bibliography">Bibliography and Relevant Reading</a></li>
+      <li><a href="#contributors">Contributors</a></li>
+    </ul>
     <h3 id="introduction">Introduction</h3>
     <p>This study compares the compression performance of four different image formats: JPEG, WebP,
        JPEG XR, and HEVC-MSP. The latter two formats were chosen because they are frequently
@@ -23,7 +38,7 @@
     <p>It is our intent to only address compression performance in this study. Other technical,
        legal, and market factors that might be considered when evaluating codecs are outside the
        scope of this study.</p>
-    <h3 id="quality_metrics">Quality Comparison Algorithms</h3>
+    <h3 id="quality_metrics">Quality Metrics</h3>
     <p>We chose to test with four algorithms:</p>
     <ul>
       <li>PSNR-HVS-M
