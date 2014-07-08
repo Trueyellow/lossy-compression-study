@@ -7,7 +7,6 @@
       td {padding: 6px; border: 1px solid gray;}
       tr.thead {background-color: #CC4040;}
       tr.dark {background-color: #DEDEDE;}
-      .notes {font-size:70%;}
       #toc {display: inline-block; padding: 8px;}
       h3 {background-color: #DEDEDE; padding: 5;}
       code {color: #196C35;}
@@ -24,7 +23,7 @@
     <p>It is our intent to only address compression performance in this study. Other technical,
        legal, and market factors that might be considered when evaluating codecs are outside the
        scope of this study.</p>
-    <h3 id="quality_comparison">Quality Comparison Algorithms</h3>
+    <h3 id="quality_metrics">Quality Comparison Algorithms</h3>
     <p>We chose to test with four algorithms:</p>
     <ul>
       <li>PSNR-HVS-M
@@ -135,38 +134,6 @@
     <p>After collecting encoded image size and quality metrics for each image at each quality
        level, we average the file sizes and quality scores across all images. Quality scores are
        weighted by pixel count. See the <code>rd_average.py</code> script for more information.
-    <div class="notes">
-    <p>Note on Luma-only Metrics</p>
-    <p>Three of the metrics we use (Y-SSIM, MS-SSIM, and PSNR-HVS-M) measure image quality by
-       considering only a single channel, e.g., luma, chroma-blue or chroma-red, disregarding the
-       others.  Another metric we use (RGB-SSIM) combines the results for both the luma and chroma
-       planes, but only after color conversion.  An issue with codec tuning based on rate-distortion
-       curves for a single-plane metric is that they can produce sub-optimal results.  A
-       hypothetical codec that spends bits to improve luma quality and codes no chroma scores well
-       here!  This is because rate is typically computed based on the entire coded image size (luma
-       and chroma).  Metrics that take both luma and chroma into account do so averaging the results
-       for each, which is problematic because we are not aware of any evidence that this corresponds
-       well with human perception.  How to weight the different channels when averaging is something
-       of a guess, one which could well exaggerate the overall impact of chroma.  This is an area we
-       would like to see researched further.</p>
-    <p>Despite the above, there are several reasons to continue using luma-only metrics to measure
-       codec performance.  First, the human visual system is more sensitive to variations in
-       brightness than color.  This is the motivation behind chroma sub-sampling.  Second, in a
-       4:2:0 image the luma plane accounts for 2/3 of all pixel data, but due to coding techniques
-       often accounts for more than 2/3 of all bits per image.  A luma plane approach can only be so
-       wrong.  Third, despite being globally decorrelated in an image, the chroma channels often
-       correlate well with luma *locally*.  This fact is typically exploited by codecs and a side
-       effect is that improvements in luma coding alone can translate to improvements in chroma
-       quality.  Finally, it may be tempting to try and partition an image size into bits that code
-       luma and bits that code chroma.  However, modern video codecs use multi-symbol probability
-       models and adapt the context everywhere.  It is impossible to causally separate a bit that is
-       used just code a luma value, because its value influences the cost to code a chroma value and
-       vice versa.  So we are stuck with total bits / pixel as the most accurate measure of overall
-       rate.</p>
-    <p>Until research shows how to combine quality scores from the three (or more if you include
-       alpha) image channels into a single useful value, we will continue to use luma-only metrics
-       for any non-subjective testing we do.</p>
-    </div>
     <h3 id="raw_data">Results (Raw Data)</h3>
     <p>The following zip archive contains textual data (.out) files with the full results for this
        study. These can be opened with any text editor or imported into most spreadsheet
@@ -174,7 +141,7 @@
     <ul>
       <li><a href="July-2014-Data.zip">Data Archive</a></li>
     </ul>
-    <h3 id="the_data_1">Bits per Pixel at Equivalent Quality According to PSNR-HVS-M</h3>
+    <h3 id="psnr-hvs-m-data">Bits per Pixel at Equivalent Quality According to PSNR-HVS-M</h3>
     <p>The goal for this section is to visualize bits per pixel over the full range of quality
        options. In each graph, the Y axis represents quality and the X axis represents bits per
        pixel. There is one graph for each image set.</p>
@@ -204,7 +171,7 @@
         </tr>
       </table>
     </p>
-    <h3 id="the_data_2">Bits per Pixel at Equivalent Quality According to Y-SSIM</h3>
+    <h3 id="y-ssim-data">Bits per Pixel at Equivalent Quality According to Y-SSIM</h3>
     <p>The goal for this section is to visualize bits per pixel over the full range of quality
        options. In each graph, the Y axis represents quality and the X axis represents bits per
        pixel. There is one graph for each image set.</p>
@@ -234,7 +201,7 @@
         </tr>
       </table>
     </p>
-    <h3 id="the_data_3">Bits per Pixel at Equivalent Quality According to MS-SSIM</h3>
+    <h3 id="ms-ssim-data">Bits per Pixel at Equivalent Quality According to MS-SSIM</h3>
     <p>The goal for this section is to visualize bits per pixel over the full range of quality
        options. In each graph, the Y axis represents quality and the X axis represents bits per
        pixel. There is one graph for each image set.</p>
@@ -264,7 +231,7 @@
         </tr>
       </table>
     </p>
-    <h3 id="the_data_4">Bits per Pixel at Equivalent Quality According to RGB-SSIM</h3>
+    <h3 id="rgb-ssim-data">Bits per Pixel at Equivalent Quality According to RGB-SSIM</h3>
     <p>The goal for this section is to visualize bits per pixel over the full range of quality
        options. In each graph, the Y axis represents quality and the X axis represents bits per
        pixel. There is one graph for each image set.</p>
@@ -294,6 +261,86 @@
         </tr>
       </table>
     </p>
+    <h3 id="tuning-for-metrics">Note on Tuning for Metrics</h3>
+    <p>Different people and organizations trust different metrics for measuring image quality, and
+       thus compression performance. We included four metrics in this study because existing
+       research has not established which metric best matches human visual perception.</p>
+    <p>Encoder developers typically use a particular metric, or set of metrics, to guide
+       development. Encoders will typically perform best according to the metric(s) targeted by its
+       developers. Theoretically, most encoders could be tuned to perform better on any particular
+       metric while producing valid (compatible) image files. The mozjpeg encoder actually includes
+       the option to target different metrics, so we can use it to illustrate this.</p>
+    <p>Here are graphs for each metric using the Kodak image set. The difference between these
+       graphs and the above Kodak graphs is that mozjpeg has been configured to tune for the SSIM
+       metric instead of the default PSNR-HVS-M tuning. Notice how mozjpeg performs much better
+       in these graphs according to Y-SSIM and RGB-SSIM, though at the expense of PSNR-HVS-M and
+       MS-SSIM.</p>
+    <p>
+      <table>
+        <caption>Graph 1: Average for Kodak image set, PSNR-HVS-M quality metric, mozjpeg tuned for
+                 SSIM metric, left is better</caption>
+        <tr>
+          <td><img src="Kodak-psnrhvsm-mozjpeg-ssim-tuning.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 2: Average for Kodak image set, Y-SSIM quality metric, mozjpeg tuned for
+                 SSIM metric, left is better</caption>
+        <tr>
+          <td><img src="Kodak-yssim-mozjpeg-ssim-tuning.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 3: Average for Kodak image set, MS-SSIM quality metric, mozjpeg tuned for
+                 SSIM metric, left is better</caption>
+        <tr>
+          <td><img src="Kodak-msssim-mozjpeg-ssim-tuning.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <p>
+      <table>
+        <caption>Graph 4: Average for Kodak image set, RGB-SSIM quality metric, mozjpeg tuned for
+                 SSIM metric, left is better</caption>
+        <tr>
+          <td><img src="Kodak-rgbssim-mozjpeg-ssim-tuning.png" width="768" height="576"></td>
+        </tr>
+      </table>
+    </p>
+    <h3 id="luma-only-metrics">Note on Luma-only Metrics</h3>
+    <p>Three of the metrics we use (Y-SSIM, MS-SSIM, and PSNR-HVS-M) measure image quality by
+       considering only a single channel, e.g., luma, chroma-blue or chroma-red, disregarding the
+       others.  Another metric we use (RGB-SSIM) combines the results for both the luma and chroma
+       planes, but only after color conversion.  An issue with codec tuning based on rate-distortion
+       curves for a single-plane metric is that they can produce sub-optimal results.  A
+       hypothetical codec that spends bits to improve luma quality and codes no chroma scores well
+       here!  This is because rate is typically computed based on the entire coded image size (luma
+       and chroma).  Metrics that take both luma and chroma into account do so averaging the results
+       for each, which is problematic because we are not aware of any evidence that this corresponds
+       well with human perception.  How to weight the different channels when averaging is something
+       of a guess, one which could well exaggerate the overall impact of chroma.  This is an area we
+       would like to see researched further.</p>
+    <p>Despite the above, there are several reasons to continue using luma-only metrics to measure
+       codec performance.  First, the human visual system is more sensitive to variations in
+       brightness than color.  This is the motivation behind chroma sub-sampling.  Second, in a
+       4:2:0 image the luma plane accounts for 2/3 of all pixel data, but due to coding techniques
+       often accounts for more than 2/3 of all bits per image.  A luma plane approach can only be so
+       wrong.  Third, despite being globally decorrelated in an image, the chroma channels often
+       correlate well with luma *locally*.  This fact is typically exploited by codecs and a side
+       effect is that improvements in luma coding alone can translate to improvements in chroma
+       quality.  Finally, it may be tempting to try and partition an image size into bits that code
+       luma and bits that code chroma.  However, modern video codecs use multi-symbol probability
+       models and adapt the context everywhere.  It is impossible to causally separate a bit that is
+       used just code a luma value, because its value influences the cost to code a chroma value and
+       vice versa.  So we are stuck with total bits / pixel as the most accurate measure of overall
+       rate.</p>
+    <p>Until research shows how to combine quality scores from the three (or more if you include
+       alpha) image channels into a single useful value, we will continue to use luma-only metrics
+       for any non-subjective testing we do.</p>
     <h3 id="bibliography">Bibliography and Relevant Reading</h3>
     <ol>
       <li><a href="https://developers.google.com/speed/webp/docs/webp_study">WebP Compression
